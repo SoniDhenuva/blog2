@@ -1,5 +1,8 @@
 import os
 import google.generativeai as genai
+import asyncio
+
+updateAlertAllDrone = []
 
 class AI:
     def __init__(self, api_key, model_name, generation_config, system_instruction):
@@ -49,7 +52,7 @@ class Drone1(AI):
                 "response_mime_type": "text/plain",
             },
             system_instruction=(
-                "u are an assistant"
+                "You are an assistant that helps coordinate tasks"
             ),
         )
 
@@ -66,26 +69,32 @@ class Drone2(AI):
                 "response_mime_type": "text/plain",
             },
             system_instruction=(
-                "u are an assistant"
+                "You are an assistant that helps coordinate tasks"
             ),
         )
 
+
+
 # Run the chatbot
 if __name__ == "__main__":
-    
     print("Assign Drone: ")
 
     while True:
         user_input = input("You: ")
         if user_input == "Drone1":
             chatbot = Drone1()
-            user_request = input("Whats the situation: ")
+            user_request = input("Whats the situation for Drone 1: ")
             response = chatbot.send_message(user_request)
             print(f'Drone1: {response}\n')
         elif user_input == "Drone2":
-            hatbot = Drone2()
-            user_request = input("Whats the situation: ")
+            chatbot = Drone2()
+            user_request = input("Whats the situation for Drone 1: ")
             response = chatbot.send_message(user_request)
             print(f'Drone2: {response}\n')
+        elif user_input == "Main DB":
+            user_update = input("Enter Update:")
+            updateAlertAllDrone.append(user_update)
+        elif user_input == "Show Main DB":
+            print(updateAlertAllDrone)
 
-        
+
