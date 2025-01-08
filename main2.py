@@ -43,7 +43,7 @@ class Drone1(AI):
     def __init__(self):
         super().__init__(
             api_key="AIzaSyC6NFPqfHQSACtkt3-gou52RlbbQWOibFo",
-            model_name="gemini-2.0-flash-thinking-exp-1219",
+            model_name="gemini-1.5-pro",
             generation_config={
                 "temperature": 1.15,
                 "top_p": 0.95,
@@ -60,7 +60,7 @@ class Drone2(AI):
     def __init__(self):
         super().__init__(
             api_key="AIzaSyC6NFPqfHQSACtkt3-gou52RlbbQWOibFo",
-            model_name="gemini-2.0-flash-thinking-exp-1219",
+            model_name="gemini-1.5-pro",
             generation_config={
                 "temperature": 1.15,
                 "top_p": 0.95,
@@ -130,24 +130,5 @@ async def main():
 
 # Run the chatbot
 if __name__ == "__main__":
-    print("Assign Drone: ")
-
-    while True:
-        user_input = input("You: ")
-        if user_input == "Drone1":
-            chatbot = Drone1()
-            user_request = input("Whats the situation for Drone 1: ")
-            response = chatbot.send_message(user_request)
-            print(f'Drone1: {response}\n')
-        elif user_input == "Drone2":
-            chatbot = Drone2()
-            user_request = input("Whats the situation for Drone 1: ")
-            response = chatbot.send_message(user_request)
-            print(f'Drone2: {response}\n')
-        elif user_input == "Main DB":
-            user_update = input("Enter Update:")
-            updateAlertAllDrone.append(user_update)
-        elif user_input == "Show Main DB":
-            print(updateAlertAllDrone)
-
+    asyncio.run(main())
 
