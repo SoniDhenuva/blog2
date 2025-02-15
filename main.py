@@ -1,153 +1,112 @@
 import os
 import google.generativeai as genai
 import asyncio
+import time
 
+# List to store alerts for all drones
 updateAlertAllDrone = []
 
 class AI:
     def __init__(self, api_key, model_name, generation_config, system_instruction):
-        # Configure the API key
-        genai.configure(api_key=api_key)
+        """
+        Initializes the AI model with the given configuration.
         
-        # Initialize the model
+        Parameters:
+        - api_key (str): API key for authentication.
+        - model_name (str): Name of the generative AI model.
+        - generation_config (dict): Configuration settings for the model.
+        - system_instruction (str): Instruction to guide the model's behavior.
+        """
+        genai.configure(api_key=api_key)  # Configure the API key
+        
+        # Initialize the AI model with provided settings
         self.model = genai.GenerativeModel(
             model_name=model_name,
             generation_config=generation_config,
             system_instruction=system_instruction,
         )
-        self.history = []
+        self.history = []  # Stores chat history for context retention
     
     def start_chat(self):
         """Starts a chat session with the configured model."""
         return self.model.start_chat(history=self.history)
     
     def send_message(self, user_input):
-        """Processes user input and gets a response from the model."""
+        """
+        Processes user input and gets a response from the AI model.
+        
+        Parameters:
+        - user_input (str): The message sent to the AI.
+        
+        Returns:
+        - str: The response from the AI model or an error message.
+        """
         try:
             # Start a chat session
             chat_session = self.start_chat()
             
-            # Get the response from the model
+            # Get the response from the AI model
             response = chat_session.send_message(user_input)
             
             # Update conversation history
             self.history.append({"role": "user", "parts": [user_input]})
             self.history.append({"role": "assistant", "parts": [response.text]})
             
-            return response.text
+            return response.text  # Return AI response
         except Exception as e:
-            return f"An error occurred: {e}"
+            return f"An error occurred: {e}"  # Handle and return error message
 
 
 class Drone1(AI):
     def __init__(self):
+        """
+        Initializes Drone1 with specific AI model configurations.
+        """
         super().__init__(
-            api_key="AIzaSyC6NFPqfHQSACtkt3-gou52RlbbQWOibFo",
-            model_name="gemini-2.0-flash-thinking-exp-1219",
+            api_key="AIzaSyATDwSoaJAyojmZ6sloGeW0rTE5JvBY498",  # API Key
+            model_name="gemini-1.5-pro",  # Model Name
             generation_config={
-                "temperature": 1.15,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
+                "temperature": 1.15,  # Controls randomness of responses
+                "top_p": 0.95,  # Controls diversity of responses
+                "top_k": 40,  # Number of highest probability tokens considered
+                "max_output_tokens": 8192,  # Maximum number of output tokens
+                "response_mime_type": "text/plain",  # Response format
             },
             system_instruction=(
-                "You are an assistant that helps coordinate tasks"
+                "You are an assistant that helps coordinate tasks"  # AI's role
             ),
         )
+
 
 class Drone2(AI):
     def __init__(self):
+        """
+        Initializes Drone2 with specific AI model configurations.
+        """
         super().__init__(
-            api_key="AIzaSyC6NFPqfHQSACtkt3-gou52RlbbQWOibFo",
-            model_name="gemini-2.0-flash-thinking-exp-1219",
+            api_key="AIzaSyATDwSoaJAyojmZ6sloGeW0rTE5JvBY498",  # API Key
+            model_name="gemini-1.5-pro",  # Model Name
             generation_config={
-                "temperature": 1.15,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
+                "temperature": 1.15,  # Controls randomness of responses
+                "top_p": 0.95,  # Controls diversity of responses
+                "top_k": 40,  # Number of highest probability tokens considered
+                "max_output_tokens": 8192,  # Maximum number of output tokens
+                "response_mime_type": "text/plain",  # Response format
             },
             system_instruction=(
-                "You are an assistant that helps coordinate tasks"
+                "You are an assistant that helps coordinate tasks"  # AI's role
             ),
         )
-async def drone_communication(drone, drone_id, message_queue):
-    while True:
-        # Wait for a message from the queue
-        message = await message_queue.get() #waiting for msg
-        print(f"[{drone_id}] Received: {message}") 
 
-        if message["type"] == "query": # marking it as "query" so it can generate a response back
-            # Process the user input and generate a response
-            user_input = message["payload"]["user_input"] # payload-> contains the actual data that the system needs to process
-            response_text = drone.send_message(user_input)
-            print(f"[{drone_id}] Response: {response_text}")
-
-            # Add the response back to the queue for further handling
-            response_message = {
-                "sender_id": drone_id,
-                "type": "response",
-                "payload": {
-                    "status": "response processed",
-                    "response": response_text,
-                },
-            }
-            await message_queue.put(response_message)
-
-        elif message["type"] == "end":
-            print(f"[{drone_id}] Ending communication.")
-            break
-
-
-# Main Function
-async def main():
-    # Initialize drones
+if __name__ == "__main__":
+    # Create instances of Drone1 and Drone2
     drone1 = Drone1()
     drone2 = Drone2()
 
-    # Create message queues for each drone
-    message_queue1 = asyncio.Queue()
-    message_queue2 = asyncio.Queue()
+    # Test sending messages
+    test_message = "Hello, what is your task?"
 
-    # Add initial messages to the queues
-    await message_queue1.put({
-        "type": "query",
-        "payload": {"user_input": "Locate fire in sector A. Report status."},
-    })
-    await message_queue2.put({
-        "type": "query",
-        "payload": {"user_input": "Analyze wind data and suggest adjustments."},
-    })
-
-    # Start drone communication tasks
-    await asyncio.gather(
-        drone_communication(drone1, "Drone1", message_queue1),
-        drone_communication(drone2, "Drone2", message_queue2),
-    )
-   
-
-
-# Run the chatbot
-if __name__ == "__main__":
-    print("Assign Drone: ")
-
-    while True:
-        user_input = input("You: ")
-        if user_input == "Drone1":
-            chatbot = Drone1()
-            user_request = input("Whats the situation for Drone 1: ")
-            response = chatbot.send_message(user_request)
-            print(f'Drone1: {response}\n')
-        elif user_input == "Drone2":
-            chatbot = Drone2()
-            user_request = input("Whats the situation for Drone 1: ")
-            response = chatbot.send_message(user_request)
-            print(f'Drone2: {response}\n')
-        elif user_input == "Main DB":
-            user_update = input("Enter Update:")
-            updateAlertAllDrone.append(user_update)
-        elif user_input == "Show Main DB":
-            print(updateAlertAllDrone)
-
+    print("Testing Drone1:")
+    response1 = drone1.send_message(test_message)
+    print("Drone1 Response:", response1)
 

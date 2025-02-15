@@ -40,7 +40,7 @@ class AI:
 
 
 # Initialize AI with your API key
-ai = AI("RobotAI", "AIzaSyC6NFPqfHQSACtkt3-gou52RlbbQWOibFo")
+ai = AI("RobotAI", "AIzaSyATDwSoaJAyojmZ6sloGeW0rTE5JvBY498")
 
 # Test with a structured prompt
 prompt = "How can we improve traffic flow in a busy city?"
