@@ -1,71 +1,95 @@
 from pyswarm import pso
+import google.generativeai as genai
+import time
 
-# Example function that simulates getting desired priorities from user input.
+# Configure Gemini API
+genai.configure(api_key="AIzaSyATDwSoaJAyojmZ6sloGeW0rTE5JvBY498")  # Replace with your actual API key
+
+# Example function to analyze user input using Gemini AI
+def analyze_input(user_input):
+    prompt = f"""
+    Given this situation update: '{user_input}', determine how to adjust task priorities.
+    Respond in this format: {{'evacuation': X, 'water gathering': Y, 'fire suppression': Z}}.
+    X, Y, and Z should be integers representing priority adjustments it could be 1-500 change depending on the serverity.
+    """
+
+    model = genai.GenerativeModel("gemini-pro")
+    response = model.generate_content(prompt)
+    print("\n🔍 AI Response (Raw):", response.text)  # Debugging output
+
+    
+    try:
+        # Convert AI response to a dictionary
+        priority_changes = eval(response.text)
+    except:
+        priority_changes = {"evacuation": 0, "water gathering": 0, "fire suppression": 0}  # Default if AI fails
+
+    print("📊 AI Interpreted Changes:", priority_changes)  # Debugging output
+    return priority_changes
+
+# Default priorities
+desired_priorities = {
+    "evacuation": 9000,
+    "water gathering": 5000,
+    "fire suppression": 7000
+}
+
+# Function to update priorities based on AI response
+def update_priorities(user_input):
+    global desired_priorities
+    print("\n📝 User Input:", user_input)
+
+    # Get AI's suggested changes
+    priority_changes = analyze_input(user_input)
+
+    # Apply AI adjustments (ensure negatives reduce values)
+    for task in desired_priorities:
+        new_value = desired_priorities[task] + priority_changes.get(task, 0)
+        desired_priorities[task] = max(0, new_value)  # Ensure no negative priorities
+
+    print("✅ Updated Priorities:", desired_priorities)
+    return list(desired_priorities.values())  # Convert dictionary to list for PSO
+
+
+# Function to get current desired priorities
 def get_desired_priorities():
-    # These would typically be updated dynamically based on terminal inputs.
-    # For instance, if "fire is near people", then evacuation is high priority.
-    desired_evacuation = 9000  # highest priority
-    desired_water = 5000      # medium priority
-    desired_fire = 7000       # moderately high priority
-    return [desired_evacuation, desired_water, desired_fire]
+    return list(desired_priorities.values())
 
 # Define the objective function for PSO
 def objective(x):
-    # x[0]: evacuation, x[1]: water gathering, x[2]: fire suppression
     desired = get_desired_priorities()
     weights = [1, 1, 1]
-    # Compute the squared error between candidate and desired priorities
-    cost = (weights[0]*(x[0] - desired[0]) ** 2 + weights[1]*(x[1] - desired[1]) ** 2 +weights[0]*(x[2] - desired[2]) ** 2) # desired[0] = 1, desired[1] = 0.5
-    #print(f"Cost: {cost} (Desired: {desired}, Candidate: {x})")
+    cost = sum(weights[i] * (x[i] - desired[i]) ** 2 for i in range(3))
     return cost
 
 # Lower and upper bounds for each task's priority
-lb = [0, 0, 0]  # Lower bounds (min priority)
-ub = [10000, 10000, 10000]  # Upper bounds (max priority)
+lb = [0, 0, 0]  # Min priority
+ub = [10000, 10000, 10000]  # Max priority
 
-# PSO Parameters (Inertia weight, cognitive and social factors)
-omega = 0.3  # Lower inertia weight (more sensitive to changes)
-phip = 3.0  # Higher cognitive factor (more personal exploration)
-phig = 3.0  # Higher social factor (more influence from the swarm)
-
-# Run the Particle Swarm Optimization
-optimal_priorities, optimal_cost = pso(objective, lb, ub, swarmsize=20, maxiter=150, omega=0.3, phip=3.0, phig = 3.0)
-
-
-print("Optimal Task Priorities (Evacuation, Water, Fire Suppression):", optimal_priorities)
-print("Cost at Optimal Priorities:", optimal_cost)
-
-# Example function to assign tasks based on optimized priorities
+# Function to assign tasks to drones
 def assign_tasks_to_drones(optimal_priorities):
-    # For demonstration purposes, just print the task assignments
     tasks = ["Evacuation", "Water Gathering", "Fire Suppression"]
     for task, priority in zip(tasks, optimal_priorities):
         print(f"Assigning task '{task}' with priority {priority:.2f}")
 
-assign_tasks_to_drones(optimal_priorities)
-
+# Main loop
 def main():
-    import time
     while True:
         user_input = input("Enter update (or 'exit' to quit): ")
         if user_input.lower() == 'exit':
             break
 
-        # In a real system, update desired priorities based on user input.
-        # For example, parse input and adjust parameters accordingly.
-        # Here, we just call our function for demonstration.
+        # Update priorities using AI analysis
+        update_priorities(user_input)
+
+        # Re-run PSO with updated priorities
+        optimal_priorities, optimal_cost = pso(objective, lb, ub, swarmsize=20, maxiter=150, omega=0.3, phip=3.0, phig=3.0)
         
-        # Re-run optimization to get new task priorities
-        optimal_priorities, optimal_cost = pso(objective, lb, ub, swarmsize=20, maxiter=150, omega=0.3, phip=3.0, phig = 3.0)
         print("\nUpdated Optimal Task Priorities:", optimal_priorities)
         print("Updated Cost:", optimal_cost)
         assign_tasks_to_drones(optimal_priorities)
 
-        
-        # Wait a moment before next iteration (simulate continuous operation)
-        time.sleep(1)
+        time.sleep(1)  # Simulate continuous operation
 
 if __name__ == '__main__':
     main()
-
-
