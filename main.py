@@ -104,7 +104,7 @@ if __name__ == "__main__":
     drone2 = Drone2()
 
     # Test sending messages
-    test_message = "Hello, what is your task?"
+    test_message = input("You: ")
 
     print("Testing Drone1:")
     response1 = drone1.send_message(test_message)
