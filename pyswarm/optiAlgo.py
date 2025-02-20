@@ -10,7 +10,7 @@ def analyze_input(user_input):
     prompt = f"""
     Given this situation update: '{user_input}', determine how to adjust task priorities.
     Respond in this format: {{'evacuation': X, 'water gathering': Y, 'fire suppression': Z}}.
-    X, Y, and Z should be integers representing priority adjustments it could be 1-500 change depending on the serverity.
+    X, Y, and Z should be integers representing priority adjustments it could be -500 to 500 change depending on the serverity. but the net values that you generate must be 0
     """
 
     model = genai.GenerativeModel("gemini-pro")
@@ -82,8 +82,8 @@ def main():
         # Update priorities using AI analysis
         update_priorities(user_input)
 
-        # Re-run PSO with updated priorities
-        optimal_priorities, optimal_cost = pso(objective, lb, ub, swarmsize=20, maxiter=150, omega=0.3, phip=3.0, phig=3.0)
+        # run PSO with updated priorities
+        optimal_priorities, optimal_cost = pso(objective, lb, ub, swarmsize=100, maxiter=300, omega=0.6, phip=2.0, phig=2.5)
         
         print("\nUpdated Optimal Task Priorities:", optimal_priorities)
         print("Updated Cost:", optimal_cost)
