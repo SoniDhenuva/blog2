@@ -28,7 +28,7 @@ def analyze_input(user_input):
     X, Y, and Z should be integers representing priority adjustments it could be -500 to 500 change depending on the serverity. but the net values that you generate must be 0
     """
 
-    model = genai.GenerativeModel("gemini-1.5-pro") #gemini-pro
+    model = genai.GenerativeModel("gemini-1.5-flash") #gemini-pro
     response = model.generate_content(prompt)
     print("\n🔍 AI Response (Raw):", response.text)  # Debugging output
 
@@ -97,10 +97,10 @@ def assignTasksDrones(optimal_priorities):
     
     """
 
-    model = genai.GenerativeModel("gemini-1.5-pro") #gemini-pro
+    model = genai.GenerativeModel("gemini-1.5-flash") #gemini-pro
     response = model.generate_content(prompt)
     status = "Done"
-    # print("\n🔍 AI Response FOR DRONE (Raw):", response.text)  # Debugging output
+    print("\n🔍 AI Response FOR DRONE (Raw):", response.text)  # Debugging output
 
     return status
 
