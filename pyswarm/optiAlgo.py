@@ -2,11 +2,23 @@ from pyswarm import pso
 import google.generativeai as genai
 import time
 from datetime import datetime
+import json
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the API key
+api_key = os.getenv("API_KEY")
+# Configure the API key (ensure the API_KEY environment variable is set)
+
+genai.configure(api_key=api_key)
 
 allUpdates = {}
 
 # Configure Gemini API
-genai.configure(api_key="AIzaSyATDwSoaJAyojmZ6sloGeW0rTE5JvBY498")  # Replace with your actual API key
+# genai.configure(api_key="AIzaSyAPpGXitWWkp640uQep_UIeHcJZnnKhhuc")  # Replace with your actual API key
 
 # Example function to analyze user input using Gemini AI
 def analyze_input(user_input):
@@ -16,14 +28,14 @@ def analyze_input(user_input):
     X, Y, and Z should be integers representing priority adjustments it could be -500 to 500 change depending on the serverity. but the net values that you generate must be 0
     """
 
-    model = genai.GenerativeModel("gemini-pro") #gemini-pro
+    model = genai.GenerativeModel("gemini-1.5-pro") #gemini-pro
     response = model.generate_content(prompt)
     print("\n🔍 AI Response (Raw):", response.text)  # Debugging output
 
     
     try:
         # Convert AI response to a dictionary
-        priority_changes = eval(response.text)
+        priority_changes = json.loads(response.text)
     except:
         priority_changes = {"evacuation": 0, "water gathering": 0, "fire suppression": 0}  # Default if AI fails
 
@@ -85,10 +97,10 @@ def assignTasksDrones(optimal_priorities):
     
     """
 
-    model = genai.GenerativeModel("gemini-pro") #gemini-pro
+    model = genai.GenerativeModel("gemini-1.5-pro") #gemini-pro
     response = model.generate_content(prompt)
     status = "Done"
-    print("\n🔍 AI Response FOR DRONE (Raw):", response.text)  # Debugging output
+    # print("\n🔍 AI Response FOR DRONE (Raw):", response.text)  # Debugging output
 
     return status
 
