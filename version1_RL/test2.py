@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np 
 import time
 import random
 import matplotlib.pyplot as plt
@@ -30,29 +30,12 @@ def objective(x):
 # -------------------------
 # Q-learning Setup
 # -------------------------
-actions = []
-for o in range(len(omega_values)):
-    for p in range(len(phi_p_values)):
-        for g in range(len(phi_g_values)):
-            actions.append((o, p, g))
-
+actions = [(o, p, g) for o in range(len(omega_values)) for p in range(len(phi_p_values)) for g in range(len(phi_g_values))]
 action_counts = [0] * len(actions)
 
 def discretize_state(gbest_improve, diversity):
-    if gbest_improve > 1e-3:
-        imp_state = 2
-    elif gbest_improve > 1e-5:
-        imp_state = 1
-    else:
-        imp_state = 0
-
-    if diversity > 2000:
-        div_state = 2
-    elif diversity > 1000:
-        div_state = 1
-    else:
-        div_state = 0
-
+    imp_state = 2 if gbest_improve > 1e-3 else 1 if gbest_improve > 1e-5 else 0
+    div_state = 2 if diversity > 2000 else 1 if diversity > 1000 else 0
     return (imp_state, div_state)
 
 q_table = {}
@@ -66,17 +49,12 @@ def get_q(state):
     return q_table[state]
 
 def choose_action(state, eps):
-    if random.random() < eps:
-        return random.randint(0, len(actions) - 1)
-    q_values = get_q(state)
-    return np.argmax(q_values)
+    return random.randint(0, len(actions) - 1) if random.random() < eps else np.argmax(get_q(state))
 
 def update_q(state, action, reward, next_state):
     q_values = get_q(state)
-    q_next = get_q(next_state)
-    td_target = reward + gamma * np.max(q_next)
-    td_delta = td_target - q_values[action]
-    q_values[action] += alpha * td_delta
+    td_target = reward + gamma * np.max(get_q(next_state))
+    q_values[action] += alpha * (td_target - q_values[action])
 
 # -------------------------
 # PSO Setup
@@ -87,14 +65,11 @@ num_iterations = 100
 
 positions = np.random.uniform(0, 10000, (num_particles, num_dimensions))
 velocities = np.random.uniform(-1, 1, (num_particles, num_dimensions))
-
 pbest_positions = positions.copy()
 pbest_values = np.array([objective(p) for p in positions])
-
 gbest_index = np.argmin(pbest_values)
 gbest_position = pbest_positions[gbest_index].copy()
 gbest_value = pbest_values[gbest_index]
-
 prev_gbest_value = gbest_value
 
 reward_history = []
@@ -104,18 +79,18 @@ for iteration in range(num_iterations):
     swarm_diversity = np.mean(np.std(positions, axis=0))
     gbest_improve = prev_gbest_value - gbest_value
     prev_gbest_value = gbest_value
-
     state = discretize_state(gbest_improve, swarm_diversity)
-
-    # Decaying epsilon
     epsilon = max(0.9 * (0.99 ** iteration), 0.1)
-
     action_idx = choose_action(state, epsilon)
     action_counts[action_idx] += 1
     omega_idx, phi_p_idx, phi_g_idx = actions[action_idx]
     omega = omega_values[omega_idx]
     phi_p = phi_p_values[phi_p_idx]
     phi_g = phi_g_values[phi_g_idx]
+
+    # Entanglement setup
+    entangled_pairs = np.random.choice(num_particles, (num_particles, 1), replace=True)
+    ent_strength = np.clip(0.5 / (swarm_diversity + 1e-5), 0.05, 1.0)
 
     for i in range(num_particles):
         r_p = np.random.rand(num_dimensions)
@@ -126,11 +101,15 @@ for iteration in range(num_iterations):
             phi_p * r_p * (pbest_positions[i] - positions[i]) +
             phi_g * r_g * (gbest_position - positions[i])
         )
-        positions[i] = positions[i] + velocities[i]
+
+        # Apply quantum entanglement
+        j = entangled_pairs[i][0]
+        shared_state = (positions[i] + positions[j]) / 2
+        jitter = np.random.normal(0, 10, num_dimensions)
+        positions[i] += ent_strength * (shared_state - positions[i]) + 0.01 * jitter
         positions[i] = np.clip(positions[i], 0, 10000)
 
         fitness = objective(positions[i])
-
         if fitness < pbest_values[i]:
             pbest_positions[i] = positions[i].copy()
             pbest_values[i] = fitness
@@ -138,16 +117,10 @@ for iteration in range(num_iterations):
                 gbest_position = positions[i].copy()
                 gbest_value = fitness
 
-    # Smarter reward signal
-    if gbest_improve > 0:
-        reward = gbest_improve
-    else:
-        reward = -0.01  # small penalty for no improvement
-
-    # Add scaled diversity to reward
+    reward = gbest_improve if gbest_improve > 0 else -0.01
     reward += 0.0001 * swarm_diversity
-
     reward_history.append(reward)
+
     next_state = discretize_state(gbest_improve, swarm_diversity)
     update_q(state, action_idx, reward, next_state)
 
@@ -156,9 +129,6 @@ for iteration in range(num_iterations):
 
 end_time = time.time()
 
-# -------------------------
-# Results
-# -------------------------
 print("\n✅ Optimal Balanced Priorities Found:")
 print(f"Evacuation:       {gbest_position[0]:.2f}")
 print(f"Water Gathering:  {gbest_position[1]:.2f}")
@@ -171,5 +141,3 @@ sorted_actions = sorted(enumerate(action_counts), key=lambda x: -x[1])
 for idx, count in sorted_actions:
     o, p, g = actions[idx]
     print(f"Action {idx}: ω={omega_values[o]:.2f}, φp={phi_p_values[p]:.2f}, φg={phi_g_values[g]:.2f} | Chosen {count} times")
-
-

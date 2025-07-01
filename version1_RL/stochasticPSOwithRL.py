@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 
 # -------------------------
-# Problem Setup
+# Problem Setup (Stochastic)
 # -------------------------
 omega_values = [0.3, 0.5, 0.7, 0.9]
 phi_p_values = [1.0, 1.5, 2.0]
@@ -18,14 +18,30 @@ distances = [3, 5, 6]
 capacities = [20, 30, 10]
 
 def objective(x):
-    ai_error = sum((x[i] - ai_priorities[i])**2 for i in range(3))
-    original_error = sum((x[i] - original_priorities[i])**2 for i in range(3))
+    # Add noise to simulate stochastic environment
+    noise = np.random.normal(0, 10)
+
+    # Introduce slight random weights on priority importance per evaluation
+    evac_weight = 1.0 + np.random.normal(0, 0.05)
+    water_weight = 1.0 + np.random.normal(0, 0.05)
+    fire_weight = 1.0 + np.random.normal(0, 0.05)
+
+    # Adjusted priorities with weights
+    adjusted_priorities = [
+        x[0] * evac_weight,
+        x[1] * water_weight,
+        x[2] * fire_weight
+    ]
+
+    ai_error = sum((adjusted_priorities[i] - ai_priorities[i])**2 for i in range(3))
+    original_error = sum((adjusted_priorities[i] - original_priorities[i])**2 for i in range(3))
     penalties = [
         0.5 * risks[i] + 0.3 * distances[i] + 0.2 * (100 / (capacities[i] + 1))
         for i in range(3)
     ]
-    penalty_cost = sum(x[i] * penalties[i] for i in range(3))
-    return 0.4 * ai_error + 0.3 * original_error + 0.3 * penalty_cost
+    penalty_cost = sum(adjusted_priorities[i] * penalties[i] for i in range(3))
+
+    return 0.4 * ai_error + 0.3 * original_error + 0.3 * penalty_cost + noise
 
 # -------------------------
 # Q-learning Setup

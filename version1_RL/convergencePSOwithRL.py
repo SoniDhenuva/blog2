@@ -58,7 +58,7 @@ def discretize_state(gbest_improve, diversity):
 q_table = {}
 alpha = 0.1
 gamma = 0.9
-epsilon = 0.9  # initial, will decay
+epsilon = 0.9  # initial exploration rate
 
 def get_q(state):
     if state not in q_table:
@@ -94,10 +94,14 @@ pbest_values = np.array([objective(p) for p in positions])
 gbest_index = np.argmin(pbest_values)
 gbest_position = pbest_positions[gbest_index].copy()
 gbest_value = pbest_values[gbest_index]
-
 prev_gbest_value = gbest_value
 
 reward_history = []
+best_values_history = []
+
+convergence_threshold = 115372  # set based on known best solution
+convergence_iteration = None
+
 start_time = time.time()
 
 for iteration in range(num_iterations):
@@ -107,7 +111,7 @@ for iteration in range(num_iterations):
 
     state = discretize_state(gbest_improve, swarm_diversity)
 
-    # Decaying epsilon
+    # Decaying epsilon for exploration-exploitation balance
     epsilon = max(0.9 * (0.99 ** iteration), 0.1)
 
     action_idx = choose_action(state, epsilon)
@@ -138,16 +142,20 @@ for iteration in range(num_iterations):
                 gbest_position = positions[i].copy()
                 gbest_value = fitness
 
-    # Smarter reward signal
+    # Track convergence iteration
+    if gbest_value <= convergence_threshold and convergence_iteration is None:
+        convergence_iteration = iteration + 1
+
+    # Reward signal encourages improvements + diversity
     if gbest_improve > 0:
         reward = gbest_improve
     else:
         reward = -0.01  # small penalty for no improvement
-
-    # Add scaled diversity to reward
     reward += 0.0001 * swarm_diversity
 
     reward_history.append(reward)
+    best_values_history.append(gbest_value)
+
     next_state = discretize_state(gbest_improve, swarm_diversity)
     update_q(state, action_idx, reward, next_state)
 
@@ -166,10 +174,37 @@ print(f"Fire Suppression: {gbest_position[2]:.2f}")
 print(f"Total Cost:        {gbest_value:.2f}")
 print(f"⏱ Time taken:     {end_time - start_time:.4f} seconds")
 
+if convergence_iteration is not None:
+    print(f"\nConverged at iteration {convergence_iteration} (threshold = {convergence_threshold})")
+else:
+    print(f"\nDid not converge within {num_iterations} iterations")
+
 print("\n📊 Action usage summary (index, ω, φp, φg, count):")
 sorted_actions = sorted(enumerate(action_counts), key=lambda x: -x[1])
 for idx, count in sorted_actions:
     o, p, g = actions[idx]
     print(f"Action {idx}: ω={omega_values[o]:.2f}, φp={phi_p_values[p]:.2f}, φg={phi_g_values[g]:.2f} | Chosen {count} times")
 
+# -------------------------
+# Plot Reward and Convergence Curves
+# -------------------------
+plt.figure(figsize=(12, 5))
 
+plt.subplot(1, 2, 1)
+plt.plot(reward_history, label="Reward")
+plt.xlabel("Iteration")
+plt.ylabel("Reward")
+plt.title("Reward over Iterations")
+plt.grid(True)
+
+plt.subplot(1, 2, 2)
+plt.plot(best_values_history, label="Best Objective Value", color='orange')
+plt.axhline(y=convergence_threshold, color='r', linestyle='--', label="Convergence Threshold")
+plt.xlabel("Iteration")
+plt.ylabel("Best Objective Value")
+plt.title("Convergence Curve")
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
